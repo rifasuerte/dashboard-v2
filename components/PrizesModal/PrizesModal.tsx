@@ -113,6 +113,10 @@ export default function PrizesModal({ isOpen, onClose, prizes, onChange, origina
     if (newPrizeFile) {
       prize.image = await fileToBase64(newPrizeFile);
       setImageChanged(true);
+    } else if (originalImageWhenEditing !== undefined && !newPrizePreview) {
+      // Si había una imagen original pero ahora no hay preview, se eliminó la imagen
+      prize.image = undefined;
+      setImageChanged(true);
     } else {
       // Si no se cambió la imagen, mantener la existente (puede ser ID de Google Drive o base64)
       // Si la imagen original era un ID de Google Drive, mantenerlo

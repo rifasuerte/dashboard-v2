@@ -22,11 +22,11 @@ interface CreateClientDto {
   domain: string;
   requiresAuth: boolean;
   getDataFromGoogle?: boolean;
-  logoBase64?: string;
-  bannerBase64?: string;
-  banner2Base64?: string;
-  bannerAuthBase64?: string;
-  videoBase64?: string;
+  logoBase64?: string | null;
+  bannerBase64?: string | null;
+  banner2Base64?: string | null;
+  bannerAuthBase64?: string | null;
+  videoBase64?: string | null;
   videoURL?: string; // Alternativa a videoBase64
   autoadminitrable: boolean;
   instagram?: string; // Instagram en formato @Username
@@ -58,6 +58,13 @@ export default function ClientModal({ isOpen, onClose, onSuccess, client }: Clie
   const [bannerAuthPreview, setBannerAuthPreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   
+  // Rastrear si había imágenes originales al cargar (para saber si se eliminaron)
+  const [hadOriginalLogo, setHadOriginalLogo] = useState(false);
+  const [hadOriginalBanner, setHadOriginalBanner] = useState(false);
+  const [hadOriginalBanner2, setHadOriginalBanner2] = useState(false);
+  const [hadOriginalBannerAuth, setHadOriginalBannerAuth] = useState(false);
+  const [hadOriginalVideo, setHadOriginalVideo] = useState(false);
+  
   const [fileError, setFileError] = useState('');
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -83,6 +90,12 @@ export default function ClientModal({ isOpen, onClose, onSuccess, client }: Clie
       setBannerAuthPreview(null);
       setVideoPreview(null);
       setFileError('');
+      // Resetear flags de imágenes originales
+      setHadOriginalLogo(false);
+      setHadOriginalBanner(false);
+      setHadOriginalBanner2(false);
+      setHadOriginalBannerAuth(false);
+      setHadOriginalVideo(false);
       // Limpiar los inputs de archivo
       if (logoInputRef.current) logoInputRef.current.value = '';
       if (bannerInputRef.current) bannerInputRef.current.value = '';
@@ -102,42 +115,57 @@ export default function ClientModal({ isOpen, onClose, onSuccess, client }: Clie
       setGetDataFromGoogle(client.getDataFromGoogle ?? false);
       setAutoadminitrable(client.autoadminitrable ?? true);
       
-      // Cargar previews de imágenes/videos existentes
+      // Cargar previews de imágenes/videos existentes y rastrear si había originales
       if (client.logoURL) {
+        setHadOriginalLogo(true);
         if (client.logoURL.startsWith('data:')) {
           setLogoPreview(client.logoURL);
         } else {
           // Es un ID de Google Drive, descargarlo
           downloadGoogleDriveFileAsBase64(client.logoURL).then(setLogoPreview).catch(() => {});
         }
+      } else {
+        setHadOriginalLogo(false);
       }
       if (client.bannerURL) {
+        setHadOriginalBanner(true);
         if (client.bannerURL.startsWith('data:')) {
           setBannerPreview(client.bannerURL);
         } else {
           downloadGoogleDriveFileAsBase64(client.bannerURL).then(setBannerPreview).catch(() => {});
         }
+      } else {
+        setHadOriginalBanner(false);
       }
       if (client.banner2URL) {
+        setHadOriginalBanner2(true);
         if (client.banner2URL.startsWith('data:')) {
           setBanner2Preview(client.banner2URL);
         } else {
           downloadGoogleDriveFileAsBase64(client.banner2URL).then(setBanner2Preview).catch(() => {});
         }
+      } else {
+        setHadOriginalBanner2(false);
       }
       if (client.bannerAuthURL) {
+        setHadOriginalBannerAuth(true);
         if (client.bannerAuthURL.startsWith('data:')) {
           setBannerAuthPreview(client.bannerAuthURL);
         } else {
           downloadGoogleDriveFileAsBase64(client.bannerAuthURL).then(setBannerAuthPreview).catch(() => {});
         }
+      } else {
+        setHadOriginalBannerAuth(false);
       }
       if (client.videoURL) {
+        setHadOriginalVideo(true);
         if (client.videoURL.startsWith('data:')) {
           setVideoPreview(client.videoURL);
         } else {
           downloadGoogleDriveFileAsBase64(client.videoURL).then(setVideoPreview).catch(() => {});
         }
+      } else {
+        setHadOriginalVideo(false);
       }
     } else if (isOpen && !client) {
       // Resetear formulario para crear
@@ -159,6 +187,12 @@ export default function ClientModal({ isOpen, onClose, onSuccess, client }: Clie
       setBanner2Preview(null);
       setBannerAuthPreview(null);
       setVideoPreview(null);
+      // Resetear flags de imágenes originales
+      setHadOriginalLogo(false);
+      setHadOriginalBanner(false);
+      setHadOriginalBanner2(false);
+      setHadOriginalBannerAuth(false);
+      setHadOriginalVideo(false);
     }
     
     // Limpiar todo cuando se cierra el modal
@@ -182,6 +216,12 @@ export default function ClientModal({ isOpen, onClose, onSuccess, client }: Clie
       setBannerAuthPreview(null);
       setVideoPreview(null);
       setFileError('');
+      // Resetear flags de imágenes originales
+      setHadOriginalLogo(false);
+      setHadOriginalBanner(false);
+      setHadOriginalBanner2(false);
+      setHadOriginalBannerAuth(false);
+      setHadOriginalVideo(false);
       // Limpiar los inputs de archivo
       if (logoInputRef.current) logoInputRef.current.value = '';
       if (bannerInputRef.current) bannerInputRef.current.value = '';
@@ -270,25 +310,37 @@ export default function ClientModal({ isOpen, onClose, onSuccess, client }: Clie
         autoadminitrable,
       };
 
-      // Solo incluir archivos si se seleccionaron nuevos (no reenviar si no cambiaron)
+      // Incluir archivos si se seleccionaron nuevos, o null si se eliminaron
       if (logoFile) {
+        // Nuevo archivo seleccionado
         data.logoBase64 = await fileToBase64(logoFile);
+      } else if (isEditMode && hadOriginalLogo && !logoPreview) {
+        // Se eliminó una imagen que existía originalmente
+        data.logoBase64 = null;
       }
 
       if (bannerFile) {
         data.bannerBase64 = await fileToBase64(bannerFile);
+      } else if (isEditMode && hadOriginalBanner && !bannerPreview) {
+        data.bannerBase64 = null;
       }
 
       if (banner2File) {
         data.banner2Base64 = await fileToBase64(banner2File);
+      } else if (isEditMode && hadOriginalBanner2 && !banner2Preview) {
+        data.banner2Base64 = null;
       }
 
       if (bannerAuthFile) {
         data.bannerAuthBase64 = await fileToBase64(bannerAuthFile);
+      } else if (isEditMode && hadOriginalBannerAuth && !bannerAuthPreview) {
+        data.bannerAuthBase64 = null;
       }
 
       if (videoFile) {
         data.videoBase64 = await fileToBase64(videoFile);
+      } else if (isEditMode && hadOriginalVideo && !videoPreview) {
+        data.videoBase64 = null;
       }
 
       if (isEditMode && client) {
