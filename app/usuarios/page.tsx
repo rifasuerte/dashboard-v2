@@ -31,8 +31,8 @@ export default function UsuariosPage() {
       return;
     }
     
-    // Solo permitir acceso a superadmin y admin
-    if (authData.role !== 'superadmin' && authData.role !== 'admin') {
+    // Permitir acceso a superadmin, admin y client (validador)
+    if (authData.role !== 'superadmin' && authData.role !== 'admin' && authData.role !== 'client') {
       router.push('/dashboard');
       return;
     }
@@ -156,7 +156,7 @@ export default function UsuariosPage() {
     return null;
   }
 
-  const showSidebar = auth && (auth.role === 'superadmin' || auth.role === 'admin');
+  const showSidebar = auth && (auth.role === 'superadmin' || auth.role === 'admin' || auth.role === 'client');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">

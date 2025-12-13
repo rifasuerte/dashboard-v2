@@ -13,8 +13,11 @@ interface ImageWithGoogleDriveProps {
 }
 
 /**
- * Componente que detecta si la imagen es un ID de Google Drive o base64
- * y la carga apropiadamente
+ * Componente que detecta si la imagen es:
+ * - Base64 (data:image o data:video): usar directamente
+ * - URL (http:// o https://): usar directamente sin Drive
+ * - ID de Google Drive: descargar desde Drive
+ * Todos los métodos coexisten
  */
 export default function ImageWithGoogleDrive({ 
   src, 
@@ -40,7 +43,7 @@ export default function ImageWithGoogleDrive({
       return;
     }
 
-    // Si es base64 (data:image), usar directamente
+    // Si es base64 (data:image o data:video), usar directamente
     if (src.startsWith('data:image') || src.startsWith('data:video')) {
       setImageSrc(src);
       setLoading(false);
@@ -48,7 +51,15 @@ export default function ImageWithGoogleDrive({
       return;
     }
 
-    // Si no es base64, asumimos que es un ID de Google Drive
+    // Si es una URL (http:// o https://), usar directamente sin Drive
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      setImageSrc(src);
+      setLoading(false);
+      setError(false);
+      return;
+    }
+
+    // Si no es base64 ni URL, asumimos que es un ID de Google Drive
     let cancelled = false;
     
     downloadGoogleDriveFileAsBase64(src)

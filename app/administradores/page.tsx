@@ -119,6 +119,8 @@ export default function AdministradoresPage() {
           className={`px-2 py-1 rounded-full text-xs font-medium ${
             value === 'superadmin'
               ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+              : value === 'client'
+              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
               : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
           }`}
         >
@@ -238,6 +240,16 @@ export default function AdministradoresPage() {
               columns={columns}
               pageSize={10}
               searchFields={['name', 'email', 'identification']}
+              getRowClassName={(row: AuthResponse) => {
+                if (row.role === 'client') {
+                  return 'bg-green-50 dark:bg-green-900/10 border-l-4 border-green-500';
+                } else if (row.role === 'admin') {
+                  return 'bg-blue-50 dark:bg-blue-900/10 border-l-4 border-blue-500';
+                } else if (row.role === 'superadmin') {
+                  return 'bg-purple-50 dark:bg-purple-900/10 border-l-4 border-purple-500';
+                }
+                return '';
+              }}
             />
           </div>
 

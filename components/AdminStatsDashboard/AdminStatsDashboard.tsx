@@ -22,6 +22,7 @@ export default function AdminStatsDashboard() {
   const [revenueModalOpen, setRevenueModalOpen] = useState(false);
   const [selectedRaffleForRevenue, setSelectedRaffleForRevenue] = useState<{ id: number; name: string } | null>(null);
   const [minimizedRaffles, setMinimizedRaffles] = useState<Set<number>>(new Set());
+  const [onlyActive, setOnlyActive] = useState<boolean>(true); // Por defecto solo activas
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +43,7 @@ export default function AdminStatsDashboard() {
       }
 
       try {
-        const data = await getAdminStats(auth.client.id);
+        const data = await getAdminStats(auth.client.id, onlyActive);
         if (!cancelled) {
           setStats(data);
         }
@@ -65,7 +66,7 @@ export default function AdminStatsDashboard() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [onlyActive]);
 
   if (loading) {
     return (
@@ -122,28 +123,55 @@ export default function AdminStatsDashboard() {
     <div className="space-y-6">
       {/* Header con información del cliente */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 rounded-2xl shadow-xl p-8 text-white relative">
-        <button
-          onClick={() => setShowRevenue(!showRevenue)}
-          className="absolute top-6 right-6 flex items-center gap-2 px-3 py-1.5 text-sm bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg transition-colors"
-          title={showRevenue ? 'Ocultar ventas' : 'Mostrar ventas'}
-        >
-          {showRevenue ? (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-              </svg>
-              <span>Ocultar ventas</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <span>Mostrar ventas</span>
-            </>
-          )}
-        </button>
+        <div className="absolute top-6 right-6 flex flex-col gap-2">
+          <button
+            onClick={() => setShowRevenue(!showRevenue)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg transition-colors"
+            title={showRevenue ? 'Ocultar ventas' : 'Mostrar ventas'}
+          >
+            {showRevenue ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                </svg>
+                <span>Ocultar ventas</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <span>Mostrar ventas</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => setOnlyActive(!onlyActive)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg ${
+              onlyActive
+                ? 'bg-green-500/90 hover:bg-green-500 text-white'
+                : 'bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white'
+            }`}
+            title={onlyActive ? 'Mostrar todas las rifas' : 'Mostrar solo rifas activas'}
+          >
+            {onlyActive ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Solo Activas</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Todas</span>
+              </>
+            )}
+          </button>
+        </div>
         <h1 className="text-3xl font-bold mb-2">Panel de Estadísticas</h1>
         <p className="text-blue-100 text-lg mb-6">
           {stats.client.fantasyName} •{' '}

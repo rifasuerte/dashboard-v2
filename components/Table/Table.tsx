@@ -23,6 +23,7 @@ export interface TableProps<T = any> {
   pageSize?: number;
   searchFields?: string[]; // Campos en los que buscar cuando hay texto en el input de búsqueda
   ignoreClientFilter?: boolean; // Si es true, ignora el filtro global de cliente
+  getRowClassName?: (row: T) => string; // Función para obtener el className de la fila
 }
 
 // Respuesta del backend con formato nestjsx/crud
@@ -41,6 +42,7 @@ export default function Table<T extends Record<string, any>>({
   pageSize = 10,
   searchFields = [],
   ignoreClientFilter = false,
+  getRowClassName,
 }: TableProps<T>) {
   const { showLoading, hideLoading } = useLoading();
   const { selectedClientId } = useClientFilter();
@@ -72,8 +74,15 @@ export default function Table<T extends Record<string, any>>({
     const existingParams = new URLSearchParams(existingQuery);
     const existingFilters = existingParams.getAll('filter');
     
+    // Para admin o client (validador), siempre mantener el filtro de cliente en las búsquedas
+    // Esto es necesario porque cuando hay búsqueda, NestJS quita los filtros del endpoint
+    let clientFilterForSearch: Record<string, any> | null = null;
+    if ((auth?.role === 'admin' || auth?.role === 'client') && auth?.client) {
+      clientFilterForSearch = { 'client.id': { $eq: auth.client.id } };
+    }
+    
     // Construir búsqueda usando SOLO 'search' con $or
-    // Cuando hay búsqueda, NO enviar ningún otro filtro
+    // Cuando hay búsqueda, combinar con el filtro de cliente si existe
     const requiredJoins = new Set<string>();
     let searchObj: Record<string, any> | undefined = undefined;
     
@@ -88,6 +97,11 @@ export default function Table<T extends Record<string, any>>({
           }
         }
       });
+      
+      // Si hay filtro de cliente, necesitamos el join de client
+      if (clientFilterForSearch) {
+        requiredJoins.add('client');
+      }
       
       // Construir objeto de búsqueda con $or para todos los campos
       // Para campos numéricos (como ticketNumber), usar $eq en lugar de $contL
@@ -110,25 +124,37 @@ export default function Table<T extends Record<string, any>>({
       }).filter((condition) => condition !== null); // Filtrar condiciones nulas
       
       if (orConditions.length > 0) {
-        searchObj = { $or: orConditions };
+        // Si hay filtro de cliente, combinar con $and para mantener el filtro durante la búsqueda
+        if (clientFilterForSearch) {
+          searchObj = {
+            $and: [
+              clientFilterForSearch,
+              { $or: orConditions }
+            ]
+          };
+        } else {
+          searchObj = { $or: orConditions };
+        }
       }
     }
 
     // Construir query params nuevos
-    // IMPORTANTE: Si hay búsqueda, NO enviar ningún otro filtro
+    // Si hay búsqueda y filtro de cliente, el filtro de cliente ya está incluido en searchObj
+    // Si NO hay búsqueda, enviar los filtros normalmente
     const newQueryParams = buildCrudQuery({
       page,
       limit: pageSize,
       search: searchObj,
       sort: sortField ? buildSortParam(sortField, sortOrder) : undefined,
-      // Solo enviar filtros si NO hay búsqueda
+      // Solo enviar filtros si NO hay búsqueda (o si hay búsqueda pero no hay filtro de cliente en ella)
       filter: !searchObj && Object.keys(filter).length > 0 ? filter : undefined,
       join: requiredJoins.size > 0 ? Array.from(requiredJoins) : undefined,
     });
     
     // Combinar filtros existentes con los nuevos
     const finalParams = new URLSearchParams(newQueryParams);
-    // IMPORTANTE: Si hay búsqueda, NO agregar filtros existentes
+    // Si hay búsqueda, NO agregar filtros existentes (el filtro de cliente ya está en searchObj)
+    // Si NO hay búsqueda, agregar todos los filtros existentes
     if (!searchObj) {
       existingFilters.forEach((f) => finalParams.append('filter', f));
     }
@@ -294,10 +320,12 @@ export default function Table<T extends Record<string, any>>({
                   </td>
                 </tr>
               ) : (
-                data.map((row, index) => (
+                data.map((row, index) => {
+                  const rowClassName = getRowClassName ? getRowClassName(row) : '';
+                  return (
                   <tr
                     key={index}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${rowClassName}`}
                   >
                     {columns.map((column) => (
                       <td
@@ -314,7 +342,8 @@ export default function Table<T extends Record<string, any>>({
                       </td>
                     ))}
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

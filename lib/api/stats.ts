@@ -42,12 +42,14 @@ export interface SuperadminStats {
  * Obtiene las estadísticas para superadmin
  * El backend distingue entre admin y superadmin por el token
  * @param clientId - ID del cliente (opcional, solo si superadmin tiene cliente seleccionado)
+ * @param onlyActive - Si es true, solo muestra rifas activas (por defecto true)
  */
-export async function getSuperadminStats(clientId?: number): Promise<SuperadminStats> {
+export async function getSuperadminStats(clientId?: number, onlyActive: boolean = true): Promise<SuperadminStats> {
   const queryParams = new URLSearchParams();
   if (clientId) {
     queryParams.append('clientId', clientId.toString());
   }
+  queryParams.append('onlyActive', onlyActive.toString());
   const queryString = queryParams.toString();
   
   return apiRequest<SuperadminStats>(`/admin/dashboard${queryString ? `?${queryString}` : ''}`, {
@@ -97,10 +99,12 @@ export interface AdminStats {
 /**
  * Obtiene las estadísticas para admin/client
  * @param clientId - ID del cliente del admin/client
+ * @param onlyActive - Si es true, solo muestra rifas activas (por defecto true)
  */
-export async function getAdminStats(clientId: number): Promise<AdminStats> {
+export async function getAdminStats(clientId: number, onlyActive: boolean = true): Promise<AdminStats> {
   const queryParams = new URLSearchParams();
   queryParams.append('clientId', clientId.toString());
+  queryParams.append('onlyActive', onlyActive.toString());
   
   return apiRequest<AdminStats>(`/admin/dashboard?${queryParams.toString()}`, {
     method: 'GET',

@@ -119,13 +119,13 @@ export default function AdminModal({ isOpen, onClose, onSuccess, admin }: AdminM
     // Si no es superadmin, usar el cliente del admin logueado
     const finalClientId = isSuperadmin ? clientId : auth?.client?.id;
     
-    // Validar cliente para rol admin (solo si es superadmin)
-    if (isSuperadmin && role === 'admin' && !clientId) {
-      showAlert('Debes seleccionar un cliente para el rol admin', 'warning');
+    // Validar cliente para rol admin o client (validador) (solo si es superadmin)
+    if (isSuperadmin && (role === 'admin' || role === 'client') && !clientId) {
+      showAlert(`Debes seleccionar un cliente para el rol ${role === 'admin' ? 'admin' : 'validador'}`, 'warning');
       return;
     }
     
-    if (!isSuperadmin && role === 'admin' && !finalClientId) {
+    if (!isSuperadmin && (role === 'admin' || role === 'client') && !finalClientId) {
       showAlert('No se pudo determinar el cliente asociado', 'error');
       return;
     }
@@ -358,7 +358,8 @@ export default function AdminModal({ isOpen, onClose, onSuccess, admin }: AdminM
                 value={role}
                 onChange={(e) => {
                   setRole(e.target.value);
-                  if (e.target.value !== 'admin') {
+                  // Solo limpiar cliente si el nuevo rol no requiere cliente
+                  if (e.target.value !== 'admin' && e.target.value !== 'client') {
                     setClientId(undefined);
                   }
                 }}
@@ -373,7 +374,7 @@ export default function AdminModal({ isOpen, onClose, onSuccess, admin }: AdminM
               </select>
             </div>
 
-            {role === 'admin' && isSuperadmin && (
+            {(role === 'admin' || role === 'client') && isSuperadmin && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Cliente *
